@@ -8,8 +8,10 @@
 
 import UIKit
 import RealmSwift
+ import ChameleonFramework
 
-class TodoListViewController: UITableViewController {
+
+class TodoListViewController: SwipeTableViewController {
     
     var toDoItems: Results<Item>?
     
@@ -33,7 +35,7 @@ class TodoListViewController: UITableViewController {
         
         print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         
-        
+        tableView.separatorStyle = .none
     }
     
     //MARK: - Tableview Datasource Methods
@@ -44,11 +46,20 @@ class TodoListViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         if let item = toDoItems?[indexPath.row] {
             
             cell.textLabel?.text = item.title
+            
+            if let color = UIColor(hexString: selectedCategory!.color)?.darken(byPercentage: CGFloat(indexPath.row) / CGFloat(toDoItems!.count)) {
+                
+                cell.backgroundColor = color
+                cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
+                
+            }
+            
+            
             
             //Ternary Operator ==>
             // value = condition ? valueIfTrue : valueIfFalse
@@ -125,18 +136,6 @@ class TodoListViewController: UITableViewController {
     }
     //MARK - Model manipulation methods
     
-//    func saveItems() {
-//
-//        do {
-//            try context.save()
-//
-//        } catch {
-//            print("error saving context \(error)")
-//        }
-//
-//        self.tableView.reloadData()
-//    }
-    
     
     func loadItems() {
         
@@ -145,8 +144,21 @@ class TodoListViewController: UITableViewController {
         tableView.reloadData()
     }
 
-}
 
+override func updateModel(at indexPath:IndexPath) {
+    if let item = toDoItems?[indexPath.row] {
+        do{
+            try realm.write {
+                realm.delete(item)
+            }
+        }catch{
+            print("error deleting item, \(error)")
+        }
+    }
+}
+    
+    
+}
 //MARK: - Search bar methods
 
 extension TodoListViewController : UISearchBarDelegate {
